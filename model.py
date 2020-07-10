@@ -31,12 +31,34 @@ class Listener(nn.Module):
         return h
 
 
+class AttentionContext(nn.Module):
+    def __init__(self):
+        super(AttentionContext, self).__init__()
+        self.phi = nn.Linear()
+        self.psi = nn.Linear()
+
+    def forward(self, s, h):
+        # input
+        # s : a tensor with size [batch, s_dim]
+        # h : a tensor with size [batch, seq, h_dim]
+
+        phi_s = self.phi(s) # [batch, dim]
+        psi_h = self.psi(h) # [batch, seq, dim]
+        
+        e = torch.einsum('ik,ijk->ij', phi_s, psi_h) # for each batch, e = [< phi_s, psi_h_1 >, ... , < phi_s, psi_h_u >]
+        alpha = F.softmax(e, dim = -1)
+        c = torch.einsum('ij,ijk->ij', alpha, h) # [batch, seq, h_dim]
+
+        return c
+        
+
 class Speller(nn.Module):
     def __init__(self):
         super(Speller, self).__init__()
-
+        self.AttentionContext = AttentionContext()
+        self.RNN = nn.LSTM(num_layers = 2)
+        self.CharacterDistribution = nn.Linear()
     def forward(self, x):
         pass
 
-l = Listener(10,10,3)
-print(l)
+
