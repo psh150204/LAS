@@ -81,7 +81,7 @@ class Speller(nn.Module):
         self.embedding = embedding
 
     def decode(self, probs):
-        
+
 
     def forward(self, Y, h, ground_truth = None):
         # input
@@ -93,7 +93,7 @@ class Speller(nn.Module):
         cs = torch.zeros() # cell state
         probs = []
 
-        for i in range(len(y)):
+        for i in range(len(Y)):
             isTruth = False
 
             # training
