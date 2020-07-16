@@ -81,8 +81,8 @@ def word_error_rate(ref, hyp):
 
     WER = 0.0
     for i in range(len(ref)):
-        r = ref[i].split()
-        h = hyp[i].split()
+        r = ref[i].lower().split()
+        h = hyp[i].lower().split()
         WER += wer(r, h)
 
     return WER / len(ref)
