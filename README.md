@@ -6,7 +6,8 @@ PyTorch implementation of the paper 'Listen, Attend and Spell'
 * Dataset: librispeech-clean-100
 * Features: Model, Framework agnostic
 
-### WER 40.43% After 34 epochs (with train loss 0.0749, initial loss 3.4095)
+### Result
+* WER 40.43% After 34 epochs (with train loss 0.0749, initial loss 3.4095)
 
 ### References
 [1] Chan, William, et al. "Listen, attend and spell: A neural network for large vocabulary conversational speech recognition." 2016 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP). IEEE, 2016.
