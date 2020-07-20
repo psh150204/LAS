@@ -87,7 +87,7 @@ class Speller(nn.Module):
         self.CharacterDistribution = nn.Linear(s_dim + 2 * h_dim, num_class)
         self.embedding = OneHotVectorEncoding(num_class, device)
 
-    def forward(self, x, h):
+    def forward(self, x, h, tf_rate = 0.5):
         # input
         # x : [batch, n] = batch * [y1, ..., y_n] where y_1 is a character
         # h : [batch, seq, 2 * h_dim]
@@ -113,7 +113,12 @@ class Speller(nn.Module):
             
             if i+1 < n :
                 # teacher forcing
-                next_char = self.embedding(x[:,i+1:i+2]) # [batch, 1, num_class]
+                if np.random.uniform() < tf_rate :
+                    next_char = self.embedding(x[:,i+1:i+2]) # [batch, 1, num_class]
+                else :
+                    pred = torch.argmax(F.softmax(p, dim = -1), dim = -1).unsqueeze(1) # [batch, 1]
+                    next_char = self.embedding(pred)
+                
                 rnn_input = torch.cat([next_char, c.unsqueeze(1)], dim = -1) # [batch, 1, num_class + 2 * h_dim]
                 
         return results
