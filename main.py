@@ -12,6 +12,23 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+import sys
+
+class Logger(object):
+    def __init__(self):
+        self.terminal = sys.stdout
+        self.log = open("results/log.txt", "w")
+
+    def write(self, message):
+        self.terminal.write(message)
+        self.log.write(message)  
+
+    def flush(self):
+        #this flush method is needed for python 3 compatibility.
+        #this handles the flush command by doing nothing.
+        #you might want to specify some extra behavior here.
+        pass    
+
 def save_checkpoint(listener, speller, path):
     listener_state = {
         'state_dict' : listener.state_dict()
@@ -26,7 +43,6 @@ def save_checkpoint(listener, speller, path):
     print('A check point has been generated : ' + path)
 
 def main(args):
-    sos_idx = 0
     eos_idx = 1
     pad_idx = -1
     pad_val = 0.0
@@ -37,7 +53,6 @@ def main(args):
     speller_hidden_dim = 512
     attention_hidden_dim = 128
     num_of_classes = 30
-    max_label_len = 300
 
     learning_rate = 0.2
     geometric_decay = 0.98
@@ -53,7 +68,8 @@ def main(args):
         train_loader = DataLoader(src, trg, args.batch_size, pad_idx, pad_val)
 
         criterion = nn.CrossEntropyLoss(ignore_index = pad_idx)
-        optimizer = torch.optim.ASGD([{'params':listener.parameters()}, {'params':speller.parameters()}], lr=learning_rate)
+        #optimizer = torch.optim.ASGD([{'params':listener.parameters()}, {'params':speller.parameters()}], lr=learning_rate)
+        optimizer = torch.optim.Adam([{'params':listener.parameters()}, {'params':speller.parameters()}], lr = 0.0001)
 
         print('Start training ...')
         for epoch in range(args.epochs):
@@ -73,11 +89,11 @@ def main(args):
                 preds = speller(trg_input, h)
                 
                 # lr decay for every 1/20 epoch
-                if (i+1) % ((train_loader.size//args.batch_size)//20) is 0 :
-                    learning_rate = geometric_decay * learning_rate
-                    print('learing rate decayed : %.4f'%(learning_rate))
-                    for group in optimizer.param_groups:
-                        group['lr'] = learning_rate
+                #if (i+1) % ((train_loader.size//args.batch_size)//20) is 0 :
+                #    learning_rate = geometric_decay * learning_rate
+                #    print('learing rate decayed : %.4f'%(learning_rate))
+                #    for group in optimizer.param_groups:
+                #        group['lr'] = learning_rate
 
                 optimizer.zero_grad()
 
@@ -119,6 +135,7 @@ def main(args):
 
         j = 0
         pred = []
+        ref = []
         for src_batch, trg_batch in test_loader:
             # predict pred_batch from src_batch with your model.
             # every sentences in pred_batch should start with <sos> token (index: 0) and end with <eos> token (index: 1).
@@ -127,6 +144,7 @@ def main(args):
             # [[0, 5, 6, 7, 1],
             #  [0, 4, 9, 1, 2],
             #  [0, 6, 1, 2, 2]]
+            start_batch = time.time()
 
             src_batch = torch.tensor(src_batch).to(device)
             trg_batch = torch.tensor(trg_batch).to(device)
@@ -156,7 +174,7 @@ def main(args):
                 # every sentence has eos
                 if eos_mask.sum() == args.batch_size :
                     break
-                    
+                
                 t = time.time() - start
                 print("[%d/%d][%d/%d] prediction done | time : %.2fs"%(j, test_loader.size // args.batch_size + 1, k+1, max_length, t))
             j += 1
@@ -165,17 +183,21 @@ def main(args):
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
 
-            print("[%d/%d] prediction done"%(j, test_loader.size // batch_size + 1))
+            print("[%d/%d] prediction done | time : %.2fs"%(j, test_loader.size // args.batch_size + 1, time.time() - start_batch))
             pred += seq2sen(pred_batch.cpu().numpy().tolist(), mapping)
             ref += seq2sen(trg_batch.cpu().numpy().tolist(), mapping)
 
-        with open('results/pred.txt', 'w') as f:
-            for line in pred:
-                f.write('{}\n'.format(line))
+            if j % 10 == 0:
+                WER = word_error_rate(ref, pred)
+                print("Test [%d/%d] : WER %.2f%%"%(j, test_loader.size // args.batch_size + 1, WER))
 
-        with open('results/ref.txt', 'w') as f:
-            for line in ref:
-                f.write('{}\n'.format(line))
+            with open('results/pred_%d.txt'%(j), 'w') as f:
+                for line in pred:
+                    f.write('{}\n'.format(line))
+
+            with open('results/ref_%d.txt'%(j), 'w') as f:
+                for line in ref:
+                    f.write('{}\n'.format(line))
 
         WER = word_error_rate(ref, pred)
         print("Test End : WER %.2f%%"%(WER))
@@ -207,5 +229,6 @@ if __name__ == '__main__':
     )
 
     args = parser.parse_args()
+    sys.stdout = Logger()
 
     main(args)
