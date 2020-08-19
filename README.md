@@ -1,6 +1,6 @@
 # Listen, Attend and Spell (LAS)
 
-PyTorch implementation of the paper 'Listen, Attend and Spell'
+PyTorch implementation of the paper 'Listen, Attend and Spell' (ICASSP 2016)
 
 * Requirements: Python 3, PyTorch
 * Dataset: librispeech-clean-100
